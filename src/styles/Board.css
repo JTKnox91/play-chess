@@ -1,5 +1,6 @@
 .Board {
 	width: 400px;
+	line-height: 0;
 }
 
 .Square {
