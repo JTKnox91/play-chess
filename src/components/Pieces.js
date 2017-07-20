@@ -20,13 +20,64 @@ const pieceImages = {
   }
 };
 
-class Piece extends Component {
+const pieceSize = 50; //piece rendered as is 50px by 50px in CSS
 
-  render() {
+class Piece extends Component {
+  constructor (props) {
+    super(props)
+    this.state = {
+      interaction: "grabbable",
+      dragging: false
+    };
+  }
+  makeClass (state) {
+    let className = "Piece";
+    if (state.interaction) {className += " "+state.interaction}
+    if (state.dragging) {className += " dragging"}
+    return className;
+  }
+
+  mouseDown (e) {
+    this.setState({interaction: "grabbing"})
+  }
+
+  mouseUp (e) {
+    this.setState({interaction: "grabbable"})
+  }
+
+  dragStart (e) {
+    let transferImage = document.createElement("img");
+    transferImage.src = pieceImages[this.props.color][this.props.pieceName];
+    e.dataTransfer.setDragImage(transferImage, pieceSize/2, pieceSize/2);
+    this.setState({dragging: true});
+  }
+
+  drag (e) {
+    //not currently in use, but might be soon
+  }
+
+  dragEnd (e) {
+    document.body.classList.remove("grabbing");
+    this.setState({
+      dragging: false,
+      interaction: "grabbable",
+    });
+  }
+
+  render () {
     return (
-      <div className="Piece">
+      <div 
+        className={this.makeClass(this.state)}
+        draggable="true"
+        onMouseDown={this.mouseDown.bind(this)}
+        onMouseUp={this.mouseUp.bind(this)}        
+        onDragStart={this.dragStart.bind(this)}
+        onDrag={this.drag.bind(this)}
+        onDragEnd={this.dragEnd.bind(this)}
+      >
         <img
           className="Piece-img"
+          draggable="false"
           src={pieceImages[this.props.color][this.props.pieceName]}
           alt={this.props.pieceName +"-"+ this.props.color || ""}
         />
