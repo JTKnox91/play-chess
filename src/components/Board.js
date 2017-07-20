@@ -3,38 +3,38 @@ import '../styles/Board.css';
 import Piece from '../components/Pieces.js';
 
 const startingPositions = {
-  "a8": {color: "dark", pieceName: "rook"},
-  "b8": {color: "dark", pieceName: "knight"},
-  "c8": {color: "dark", pieceName: "bishop"},
-  "d8": {color: "dark", pieceName: "king"},
-  "e8": {color: "dark", pieceName: "queen"},
-  "f8": {color: "dark", pieceName: "bishop"},
-  "g8": {color: "dark", pieceName: "knight"},
-  "h8": {color: "dark", pieceName: "rook"},
-  "a7": {color: "dark", pieceName: "pawn"},
-  "b7": {color: "dark", pieceName: "pawn"},
-  "c7": {color: "dark", pieceName: "pawn"},
-  "d7": {color: "dark", pieceName: "pawn"},
-  "e7": {color: "dark", pieceName: "pawn"},
-  "f7": {color: "dark", pieceName: "pawn"},
-  "g7": {color: "dark", pieceName: "pawn"},
-  "h7": {color: "dark", pieceName: "pawn"},
-  "a2": {color: "light", pieceName: "pawn"},
-  "b2": {color: "light", pieceName: "pawn"},
-  "c2": {color: "light", pieceName: "pawn"},
-  "d2": {color: "light", pieceName: "pawn"},
-  "e2": {color: "light", pieceName: "pawn"},
-  "f2": {color: "light", pieceName: "pawn"},
-  "g2": {color: "light", pieceName: "pawn"},
-  "h2": {color: "light", pieceName: "pawn"},
-  "a1": {color: "light", pieceName: "rook"},
-  "b1": {color: "light", pieceName: "knight"},
-  "c1": {color: "light", pieceName: "bishop"},
-  "d1": {color: "light", pieceName: "king"},
-  "e1": {color: "light", pieceName: "queen"},
-  "f1": {color: "light", pieceName: "bishop"},
-  "g1": {color: "light", pieceName: "knight"},
-  "h1": {color: "light", pieceName: "rook"},
+  "a8": {color: "dark", name: "rook"},
+  "b8": {color: "dark", name: "knight"},
+  "c8": {color: "dark", name: "bishop"},
+  "d8": {color: "dark", name: "king"},
+  "e8": {color: "dark", name: "queen"},
+  "f8": {color: "dark", name: "bishop"},
+  "g8": {color: "dark", name: "knight"},
+  "h8": {color: "dark", name: "rook"},
+  "a7": {color: "dark", name: "pawn"},
+  "b7": {color: "dark", name: "pawn"},
+  "c7": {color: "dark", name: "pawn"},
+  "d7": {color: "dark", name: "pawn"},
+  "e7": {color: "dark", name: "pawn"},
+  "f7": {color: "dark", name: "pawn"},
+  "g7": {color: "dark", name: "pawn"},
+  "h7": {color: "dark", name: "pawn"},
+  "a2": {color: "light", name: "pawn"},
+  "b2": {color: "light", name: "pawn"},
+  "c2": {color: "light", name: "pawn"},
+  "d2": {color: "light", name: "pawn"},
+  "e2": {color: "light", name: "pawn"},
+  "f2": {color: "light", name: "pawn"},
+  "g2": {color: "light", name: "pawn"},
+  "h2": {color: "light", name: "pawn"},
+  "a1": {color: "light", name: "rook"},
+  "b1": {color: "light", name: "knight"},
+  "c1": {color: "light", name: "bishop"},
+  "d1": {color: "light", name: "king"},
+  "e1": {color: "light", name: "queen"},
+  "f1": {color: "light", name: "bishop"},
+  "g1": {color: "light", name: "knight"},
+  "h1": {color: "light", name: "rook"},
 };
 
 class Board extends Component {
@@ -44,7 +44,15 @@ class Board extends Component {
       for (let c = 0; c < 8; c++) {
         let color = (r + c) % 2 === 0 ? "light" : "dark";
         let coord = String.fromCharCode(("a").charCodeAt()+c) + r; //create chess coordinate, ie "a8"
-        squares.push(<Square key={coord} color={color} coord={coord} />);
+        let piece = startingPositions[coord] || null;
+        squares.push(
+          <Square
+            key={coord}
+            color={color}
+            coord={coord}
+            piece={piece}
+          />
+        );
       }
     }
     return squares;
@@ -60,17 +68,50 @@ class Board extends Component {
 }
 
 class Square extends Component {
+  constructor (props) {
+    super(props);
+    this.state = {
+      isEmpty: !this.props.piece,
+      piece: this.props.piece
+    };
+  }
+
+  allowDrop (e) {
+    e.preventDefault();
+  }
+
+  placePiece (e) {
+    e.preventDefault();
+    let data = e.dataTransfer.getData("application/json");
+    let piece = JSON.parse(data);
+    this.setState({
+      isEmpty: false,
+      piece: piece
+    });
+  }
+
+  removePiece () {
+    this.setState({
+      isEmpty: true,
+      piece: null
+    });
+  }
+
   render () {
-    let piece = null;
-    if (startingPositions[this.props.coord] !== undefined) {
-      piece = <Piece
-                color={startingPositions[this.props.coord].color}
-                pieceName={startingPositions[this.props.coord].pieceName}
-                coord={this.props.coord}
-              />
-    }
+    let piece = this.state.isEmpty ? null : (
+      <Piece
+        color={this.state.piece.color}
+        name={this.state.piece.name}
+        coord={this.props.coord}
+        removeSelf={this.removePiece.bind(this)}
+      />
+    );
     return (
-      <div className={"Square Square-"+this.props.color} >{piece}</div>
+      <div 
+        className={"Square Square-"+this.props.color}
+        onDragOver={this.allowDrop.bind(this)}
+        onDrop={this.placePiece.bind(this)}
+      >{piece}</div>
     );
   }
 }

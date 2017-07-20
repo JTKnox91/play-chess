@@ -47,21 +47,24 @@ class Piece extends Component {
 
   dragStart (e) {
     let transferImage = document.createElement("img");
-    transferImage.src = pieceImages[this.props.color][this.props.pieceName];
+    transferImage.src = pieceImages[this.props.color][this.props.name];
+    e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setDragImage(transferImage, pieceSize/2, pieceSize/2);
+    e.dataTransfer.setData("application/json", JSON.stringify({color: this.props.color, name: this.props.name}));
+    
     this.setState({dragging: true});
   }
 
   drag (e) {
-    //not currently in use, but might be soon
+    //not used currently but maybe in the future
   }
 
   dragEnd (e) {
-    document.body.classList.remove("grabbing");
     this.setState({
       dragging: false,
       interaction: "grabbable",
     });
+    this.props.removeSelf();
   }
 
   render () {
@@ -78,8 +81,8 @@ class Piece extends Component {
         <img
           className="Piece-img"
           draggable="false"
-          src={pieceImages[this.props.color][this.props.pieceName]}
-          alt={this.props.pieceName +"-"+ this.props.color || ""}
+          src={pieceImages[this.props.color][this.props.name]}
+          alt={this.props.name +"-"+ this.props.color || ""}
         />
       </div>
     )
