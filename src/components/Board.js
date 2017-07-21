@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import '../styles/Board.css';
 import Piece from './Pieces.js';
-import { startingPositions } from './chessHelpers.js'
+import { startingPositions, validMoves} from './chessHelpers.js'
 
 class Board extends Component {
   constructor(props) {
@@ -31,10 +31,13 @@ class Board extends Component {
   }
 
   movePiece(fromCoord, toCoord) {
-    this.setState({
-      [toCoord]: this.state[fromCoord],
-      [fromCoord]: null,
-    });
+    if (validMoves(fromCoord, this.state).has(toCoord)) {
+      this.setState({
+        [toCoord]: this.state[fromCoord],
+        [fromCoord]: null,
+        currentTurn: this.state.currentTurn === "light" ? "dark" : "light",
+      });  
+    }    
   }
 
   render() {
