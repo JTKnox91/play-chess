@@ -1,24 +1,6 @@
 import React, { Component } from 'react';
 import '../styles/Board.css';
-
-const pieceImages = {
-  "light": {
-    "king": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_klt60.png",
-    "queen": "https://upload.wikimedia.org/wikipedia/commons/4/49/Chess_qlt60.png",
-    "bishop": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_blt60.png",
-    "knight": "https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_nlt60.png",
-    "rook": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Chess_rlt60.png",
-    "pawn": "https://upload.wikimedia.org/wikipedia/commons/0/04/Chess_plt60.png",
-  },
-  "dark": {
-    "king": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Chess_kdt60.png",
-    "queen": "https://upload.wikimedia.org/wikipedia/commons/a/af/Chess_qdt60.png",
-    "bishop": "https://upload.wikimedia.org/wikipedia/commons/8/81/Chess_bdt60.png",
-    "knight": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chess_ndt60.png",
-    "rook": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Chess_rdt60.png",
-    "pawn": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Chess_pdt60.png",
-  }
-};
+import { pieceImages } from './chessHelpers.js'
 
 const pieceSize = 50; //piece rendered as is 50px by 50px in CSS
 
@@ -50,7 +32,7 @@ class Piece extends Component {
     transferImage.src = pieceImages[this.props.color][this.props.name];
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setDragImage(transferImage, pieceSize/2, pieceSize/2);
-    e.dataTransfer.setData("application/json", JSON.stringify({color: this.props.color, name: this.props.name}));
+    e.dataTransfer.setData("text/plain", this.props.coord);
     
     this.setState({dragging: true});
   }
@@ -64,7 +46,6 @@ class Piece extends Component {
       dragging: false,
       interaction: "grabbable",
     });
-    this.props.removeSelf();
   }
 
   render () {
