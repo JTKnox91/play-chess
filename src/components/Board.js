@@ -32,6 +32,10 @@ class Board extends Component {
 
   movePiece(fromCoord, toCoord) {
     if (validMoves(fromCoord, this.state).has(toCoord)) {
+      //handle capture
+      if (this.state[toCoord] !== null) {
+        //pass piece to the game's "tableside" element
+      }
       this.setState({
         [toCoord]: this.state[fromCoord],
         [fromCoord]: null,

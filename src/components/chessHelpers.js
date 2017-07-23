@@ -1,5 +1,6 @@
 export default void 0;
 
+//staring positings for all the peices plus meta data about the board needed for caluclating legal moves
 export const startingPositions = {
     a8: {id: "DR1", color: "dark", name: "rook"},
     b8: {id: "DN1", color: "dark", name: "knight"},
@@ -42,10 +43,8 @@ export const startingPositions = {
     kingHasMovedLight: false,
     kingHasMovedDark: false,
 };
-// Object.defineProperty(startingPositions, "currentTurn", {enumerable: false, value: "light"});
-// Object.defineProperty(startingPositions, "kingHasMovedLight", {enumerable: false, value: false});
-// Object.defineProperty(startingPositions, "kingHasMovedDark", {enumerable: false, value: false});
 
+//hrefs for iamges files for each piece
 export const pieceImages = {
   light: {
     king: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_klt60.png",
@@ -65,11 +64,183 @@ export const pieceImages = {
   }
 };
 
-export function validMoves (fromCoord, board) {
-  //test content returns all 
-  if (board[fromCoord].color === board.currentTurn) {
-    return new Set(Object.keys(board));
-  } else {
-    return new Set(null);
+/*
+  MOVE VALIDATION HELPERS
+*/
+
+//calculate the name of a square to move to given a starting coordinate and integers for change in rank and file
+//file is horizontal movement, rank is vertical movement
+function vectorToCoord (startCoord, fileDiff, rankDiff) {
+  let file = startCoord[0];
+  let rank = startCoord[1];
+
+  file = String.fromCharCode(file.charCodeAt() + fileDiff);
+  if (file < "a" || file > "h") {return  null;}
+
+  rank = (parseInt(rank, 10) + rankDiff).toString(10);
+  if (rank < 1 || rank > 8) {return null;}
+
+  return "" + file + rank;
+}
+
+//produces an array of possible coords a piece can travel to
+//the "direction" should be a vector with horizontal and vertical values of either (-1, 0, 1)
+//the function will "follow along" the line of that vector, until it hits a piece or the edge of the board
+function directionToRange (startCoord, direction, board) {
+  let range = [];
+  let selfColor = board[startCoord].color;
+
+  //while coord is still in the board
+  let testCoord = vectorToCoord(startCoord, direction[0], direction[1]);
+  while (testCoord !== null) { //will auto terminate if exceeeds board
+    //if hostile
+    if (board[testCoord] && board[testCoord].color !== selfColor) {
+      //add testCoord to result
+      range.push(testCoord);
+      //set testCoord to null to terminate
+      testCoord = null;
+    
+    //if friendly
+    } else if (board[testCoord] && board[testCoord].color === selfColor) {
+      //terminate without adding coord to range
+      testCoord = null;
+   
+    //if empty square
+    } else {
+      //add testCoord to result
+      range.push(testCoord)
+      //increment testCoord
+      testCoord = vectorToCoord(testCoord, direction[0], direction[1]);
+    }
   }
+
+  return range;
+}
+
+
+//"range" is an array of vectors (ie. [1,-2] for a knight)
+//it is being filtered to remove out of board spaces, and spaces with friendly pieces
+function filterRange (fromCoord, range, board) {
+  return range.map((vector) => {
+    //convert the vectors to coordinates on the board
+    return vectorToCoord(fromCoord, vector[0], vector[1]);
+
+  }).filter((toCoord) => {
+    //remove squares that go off the board
+    if (toCoord === null) {return false;}
+    //remove squares with friendly pieces
+    if (board[toCoord] && board[toCoord].color === board[fromCoord].color) {return false;}
+
+    return true;
+  });
+}
+
+function concatNestedArrays (arrays, mapCallback) {
+  return arrays.reduce((result, arr) => {
+    return result.concat(arr);
+  }, []);
+}
+
+/*
+  PIECE SPECIFIC STUFF
+*/
+
+function kingMoves (fromCoord, board) {
+  //the vectors for all 8 squares surrounding the king 
+  //in this order (for white, or upsidedown as black): TL, TM, TR, ML, MR, BL, BM, BR
+  return filterRange(fromCoord, [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]], board);
+}
+
+function queenMoves (fromCoord, board) {
+  //the vectors for all 8 directions surrounding the queen
+  //in this order (for white, or upsidedown as black): NW, N, NE, W, E, SW, S, SE
+  let directions = [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]];
+  //expand directions out and concat result
+  directions = directions.map((direction) => {
+    return directionToRange(fromCoord, direction, board);
+  });
+  return concatNestedArrays(directions);
+}
+
+function bishopMoves (fromCoord, board) {
+  //the vectors for all 8 directions surrounding the bishop
+  //in this order (for white, or upsidedown as black): NW, NE, SW, SE
+  let directions = [[-1,1], [1,1], [-1,-1], [1,-1]];
+  //expand directions out and concat result
+  directions = directions.map((direction) => {
+    return directionToRange(fromCoord, direction, board);
+  });
+  return concatNestedArrays(directions);
+}
+
+function knightMoves (fromCoord, board) {
+  //the vectorss for all 8 squares at "L" paths from the kinight
+  //in this order (for white, or upsidedown as black): TL, TR, LT, LB, RT, RB, BL, BR
+  return filterRange(fromCoord, [[-1,2], [1,2], [-2,1], [-2,-1], [2,1], [2,-1], [-1,-2], [1,-2]], board);
+}
+
+function rookMoves (fromCoord, board) {
+  //the vectors for all 8 directions surrounding the queen
+  //in this order (for white, or upsidedown as black): N, W, E, S
+  let directions = [[0,1], [-1,0], [1,0], [0,-1]];
+  //expand directions out and concat result
+  directions = directions.map((direction) => {
+    return directionToRange(fromCoord, direction, board);
+  });
+  return concatNestedArrays(directions);
+}
+
+function pawnMoves (fromCoord, board) {
+  let moves = [];
+
+  let selfColor = board[fromCoord].color;
+  let forward = selfColor === "light" ? 1 : -1;
+  let homeRank = selfColor === "light" ? "2" : "7";
+
+  let oneSpace = vectorToCoord(fromCoord, 0, forward);
+  let twoSpace = vectorToCoord(fromCoord, 0, 2*forward);
+  let leftDiag = vectorToCoord(fromCoord, -1, forward); //actually right diag if black
+  let rightDiag = vectorToCoord(fromCoord, 1, forward); //actually left diag if black
+
+  //if 1st space infront is open add it to the range
+  if (oneSpace && board[oneSpace] === null) {moves.push(oneSpace);}
+
+  //if on home rank and 2 spaces in front is open, add it to the range
+  if (twoSpace && fromCoord[1] === homeRank && board[oneSpace] === null && board[twoSpace] === null) {moves.push(twoSpace);}
+
+  //if the 1st forward diagonals contain hostiles, add them to the range
+  if (leftDiag && board[leftDiag] && board[leftDiag].color !== selfColor) {moves.push(leftDiag);}
+  if (rightDiag &&  board[rightDiag] && board[rightDiag].color !== selfColor) {moves.push(rightDiag);}
+  return moves;
+}
+
+/*
+  MOVE VALIDATION MAIN
+*/
+
+
+//calculate weather a move is legal
+export function validMoves (fromCoord, board) {
+  let name = board[fromCoord].name;
+  let color = board[fromCoord].color;
+
+  //if piece is of the right color
+  if (color === board.currentTurn) {
+
+    //get range of vectors depending on peice type
+    let options = {
+      "king": kingMoves,
+      "queen": queenMoves,
+      "bishop": bishopMoves,
+      "knight": knightMoves,
+      "rook": rookMoves,
+      "pawn": pawnMoves,
+    };
+    let coordRange = options[name](fromCoord, board);
+    
+    //TODO: check for checks
+    return new Set(coordRange);
+  }
+
+  return new Set(null);
 };
