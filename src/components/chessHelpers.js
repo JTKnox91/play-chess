@@ -40,8 +40,14 @@ export const startingPositions = {
     a6: null, b6: null, c6: null, d6: null, e6: null, f6: null, g6: null, h6: null,
   //non-coordinate information about the board's pieces
     currentTurn: "light",
-    kingHasMovedLight: false,
-    kingHasMovedDark: false,
+    kingHasMoved: {
+      light: false,
+      dark: false
+    },
+    kingPosition: {
+      light: "d1",
+      dark: "d8"
+    }
 };
 
 //hrefs for iamges files for each piece
@@ -215,9 +221,111 @@ function pawnMoves (fromCoord, board) {
 }
 
 /*
+  CHECK IF FRIENDY KING IS IN CHECK
+*/
+//"friendlyKing" is the coord of the friendly king
+function findKingPosition(board) {
+  for (let rank of ["1", "2", "3", "4", "5", "6", "7", "8"]) {
+    for (let file of ["a", "b", "c", "d", "e", "f", "g", "h"]) {
+      let piece = board[file+rank]
+      if (piece && piece.name === "king" && piece.color === board.currentTurn) {return file + rank;}
+    }
+  }
+}
+
+function boardInCheck (board) {
+  debugger;
+  let selfColor = board.currentTurn;
+  let kingPosition = findKingPosition(board);
+
+  //check immediate diagonals for pawns
+  let forward = selfColor === "light" ? 1 : -1;
+
+  let lPawn = board[vectorToCoord(kingPosition, -1, forward)]; //right pawn for black
+  let rPawn = board[vectorToCoord(kingPosition, 1, forward)]; //left pawn for black
+
+  if (lPawn && lPawn.color !== selfColor && lPawn.name === "pawn") {return true;}
+  if (rPawn && rPawn.color !== selfColor && rPawn.name === "pawn") {return true;}
+
+  //check full diagonal directionsfor bishops and queens
+  let diagDirs = [[1,1], [-1,1], [1,-1], [-1,-1]];
+  for (let dir of diagDirs) {
+    let testCoord = vectorToCoord(kingPosition, dir[0], dir[1]);
+    while (testCoord) {
+      let piece = board[testCoord];
+
+      //if friendly stop the loop
+      if (piece && piece.color === selfColor) {
+        testCoord = null;
+
+      //if hostile, stop the loop. return true if correct piece type
+      } else if (piece && piece.color !== selfColor) {
+        if (piece.name === "bishop" || piece.name === "queen") {
+          return true;
+        } else {
+          testCoord = null;
+        }
+
+      //if empty keep iterating
+      } else {
+        testCoord = vectorToCoord(testCoord, dir[0], dir[1])
+      }
+    }
+  }
+
+  //check lateral directions for rooks and queens
+  let latDirs = [[1,0], [0,1], [-1,0], [0,-1]];
+  for (let dir of latDirs) {
+    let testCoord = vectorToCoord(kingPosition, dir[0], dir[1]);
+    while (testCoord) {
+      let piece = board[testCoord];
+
+      //if friendly stop the loop
+      if (piece && piece.color === selfColor) {
+        testCoord = null;
+
+      //if hostile, stop the loop. return true if correct piece type
+      } else if (piece && piece.color !== selfColor) {
+        if (piece.name === "rook" || piece.name === "queen") {
+          return true;
+        } else {
+          testCoord = null;
+        }
+
+      //if empty keep iterating
+      } else {
+        testCoord = vectorToCoord(testCoord, dir[0], dir[1])
+      }
+    }
+  }
+
+  //check L paths for knights
+  let lPaths = [[-1,2], [1,2], [-2,1], [-2,-1], [2,1], [2,-1], [-1,-2], [1,-2]];
+  for (let path of lPaths) {
+    let piece = vectorToCoord(kingPosition, path[0], path[1]);
+    if (piece && piece.name === "knight" && piece.color !== selfColor) {return true;}
+  }
+
+  return false;
+}
+
+//makes a move on the board, sees if the board is in check, then ondoes the move
+function checkTester (fromCoord, toCoord, board) {
+  let tempPiece = board[toCoord];
+  board[toCoord] = board[fromCoord];
+  board[fromCoord] = null;
+
+  let check = boardInCheck(board);
+  
+  board[fromCoord] = board[toCoord];
+  board[toCoord] = tempPiece;
+
+  return check;
+}
+
+/*
   MOVE VALIDATION MAIN
 */
-
 
 //calculate weather a move is legal
 export function validMoves (fromCoord, board) {
@@ -237,8 +345,16 @@ export function validMoves (fromCoord, board) {
       "pawn": pawnMoves,
     };
     let coordRange = options[name](fromCoord, board);
+    console.log("coordRange before checkTester", coordRange);
     
-    //TODO: check for checks
+    //check if friendly king in check
+    coordRange = coordRange.filter((toCoord) => {
+      //make the move, see if in check, undo the move
+      //return weather the booard was in check
+      return !checkTester(fromCoord, toCoord, board);
+    });
+    console.log("coordRange after checkTester", coordRange);
+
     return new Set(coordRange);
   }
 

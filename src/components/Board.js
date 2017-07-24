@@ -36,6 +36,22 @@ class Board extends Component {
       if (this.state[toCoord] !== null) {
         //pass piece to the game's "tableside" element
       }
+      //king specific extras
+      if (this.state[fromCoord].name === "king") {
+        let color = this.state[fromCoord].color;
+        
+        let newKingPosition = this.state.kingPosition;
+        let newKingHasMoved = this.state.kingHasMoved;
+        newKingHasMoved[color] = true;
+        newKingPosition[color] = toCoord;
+
+        this.setState({
+          kingPositions: newKingPosition,
+          kingHasMoved: newKingHasMoved,
+        });
+      }
+
+      //set the state to re-render board
       this.setState({
         [toCoord]: this.state[fromCoord],
         [fromCoord]: null,
